@@ -3,12 +3,24 @@
 # Load libraries
 library("tidyverse")
 library("googlesheets")
+library("readxl")
+library("xlsx")
 
+#gs_auth()
 gs_ls() 
 # which google sheets do you have access to?
 CM <- gs_title(x = "ClimMani protocols overview", verbose = TRUE)
 #download data
-affiliation <- gs_read(ss = CM, ws = "ClimMani people", range = cell_rows(1:114)) %>% as.tibble()
+affiliation <- gs_read(ss = CM, ws = "ClimMani people", range = cell_rows(1:115)) %>% as.tibble()
+
+### testing encoding stuff...
+stringi::stri_enc_detect("Mar<U+00ED>a")
+iconv("Bj\366rn", from = "UTF-16BE", to = "UTF-8")
+bad <- c(9)
+stringi::stri_enc_detect(affiliation$First)[[48]]
+iconv(affiliation$First[bad], from = "ISO-8859-1", to = "UTF-8")
+###
+
 
 # Prepare data
 affiliation <- affiliation %>% 
@@ -17,9 +29,9 @@ affiliation <- affiliation %>%
   # gather all affiliations in one column
   gather(key = Number, value = Affiliation, Affiliation1,  Affiliation2, Affiliation3) %>% 
   filter(!is.na(Affiliation)) %>% 
-  mutate(Country = ifelse(First == "Sean" & Affiliation == "Department of Botany and Biodiversity Research Centre, University of British Columbia, Vancouver, British Columbia V6T 1Z4, Canada", "Canada", Country)) %>% 
-  mutate(Country = ifelse(First == "Sean" & Affiliation == "Earth and Environmental Sciences Division, Los Alamos National Laboratory, Los Alamos, New Mexico 87545, USA", "USA", Country)) %>% 
-  mutate(Country = ifelse(First == "Sean" & Affiliation == "Biosphere 2 and Department of Ecology & Evolutionary Biology, University of Arizona, Tucson, Arizona 85721, USA", "USA", Country)) %>% 
+  mutate(Country = ifelse(First == "Sean" & Affiliation == "Department of Botany and Biodiversity Research Centre, University of British Columbia, Vancouver, Canada", "Canada", Country)) %>% 
+  mutate(Country = ifelse(First == "Sean" & Affiliation == "Earth and Environmental Sciences Division, Los Alamos National Laboratory, Los Alamos, USA", "USA", Country)) %>% 
+  mutate(Country = ifelse(First == "Sean" & Affiliation == "Biosphere 2 and Department of Ecology & Evolutionary Biology, University of Arizona, Tucson, USA", "USA", Country)) %>% 
   mutate(Country = ifelse(First == "Benjamin" & Affiliation == "Environmental Change Institute, School of Geography and the Environment, University of Oxford, Oxford, UK", "UK", Country)) 
   
 
@@ -60,6 +72,7 @@ NameAffList %>%
   arrange(ID) %>% 
   mutate(ID = paste0("^", ID, "^")) %>% 
   mutate(Affiliation2 = paste(ID, Affiliation, sep = "")) %>% 
+  mutate(Affiliation2 = enc2utf8(as.character(Affiliation2))) %>% 
   pull(Affiliation2) %>% 
   paste(collapse = ", ")
 
